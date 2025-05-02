@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>癫痫草药治疗智能助手</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --secondary-color: #1b5e20;
+            --light-color: #f1f8e9;
+            --dark-color: #33691e;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        h1 {
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .disclaimer {
+            background-color: #fff3cd;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border-left: 4px solid #ffa000;
+        }
+        
+        .chat-container {
+            height: 500px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+        
+        .bot-message {
+            background-color: var(--light-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid #e9ecef;
+            background-color: white;
+        }
+        
+        #user-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 20px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        #send-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 0 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #send-button:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .prescription {
+            background-color: #e8f5e9;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .prescription-title {
+            color: var(--dark-color);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .herb-item {
+            margin-bottom: 8px;
+        }
+        
+        .herb-name {
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .chat-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>癫痫草药治疗智能助手</h1>
+            <div class="subtitle">基于中医与阿育吠陀的个性化草药治疗方案</div>
+        </header>
+        
+        <div class="disclaimer">
+            <strong>重要声明：</strong>本助手提供的草药方案仅供参考，部分草药可能有毒性或副作用。使用前必须咨询专业医师，切勿自行用药。
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot-message">
+                    您好！我是癫痫草药治疗智能助手，专注于中医和阿育吠陀传统草药治疗。
+                    <br><br>
+                    为了给您提供合适的草药方案，请描述：
+                    <ul>
+                        <li>您的癫痫发作症状（抽搐、意识丧失等）</li>
+                        <li>发作频率和持续时间</li>
+                        <li>是否有其他不适（如头晕、痰多等）</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-input" placeholder="描述您的症状..." onkeypress="handleKeyPress(event)">
+                <button id="send-button" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_KEY = "sk-88a9be8cf952455589d6c1551871920c";
+        const API_URL = "https://api.deepseek.com/v1/chat/completions";
+        
+        // 显示消息到聊天界面
+        function displayMessage(message, isUser) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (typeof message === 'string') {
+                messageDiv.innerHTML = message;
+            } else {
+                messageDiv.appendChild(message);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // 发送消息到DeepSeek API获取草药处方
+        async function getHerbalPrescription(symptoms) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: "deepseek-chat",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `你是一位资深中医癫痫治疗专家，请严格按照以下格式和内容要求开具草药处方：
+
+【患者症状分析】
+根据患者描述的"{症状}"，中医辨证为"{辨证分型}"型癫痫。
+
+【中医处方】
+{草药1名称} {剂量} - {功效说明}
+{草药2名称} {剂量} - {功效说明}
+{草药3名称} {剂量} - {功效说明}
+{草药4名称} {剂量} - {功效说明}
+
+【阿育吠陀辅助】（可选）
+{阿育吠陀草药名称} {剂量} - {功效说明}
+
+【煎服方法】
+1. 将上述中药加水浸泡30分钟
+2. 煮沸后小火煎煮40分钟
+3. 每日1剂，分2次温服
+4. 建议连续服用3个月
+
+【注意事项】
+1. {特别注意事项1}
+2. {特别注意事项2}
+3. {特别注意事项3}
+4. 必须定期复诊，在医师指导下调整用药
+
+可用草药库及功效：
+【中医草药】
+天麻 - 平肝熄风、通络活血，改善气血不足，控制癫痫发作
+牛黄 - 镇静抗惊厥，化痰开窍，适用于热盛引起的癫痫发作
+僵蚕 - 疏风通络、息风定惊，缓解痉挛症状
+地龙 - 清热镇惊、息风通络，缓解抽搐症状
+石菖蒲 - 开窍醒神、健脾化痰，改善认知功能
+全蝎 - 熄风止痉、通络止痛，适用于风邪引起的惊厥抽搐（有毒，慎用）
+钩藤 - 平肝熄风、清热镇惊，降低大脑皮层兴奋性
+羚羊角 - 清热镇惊，适用于热盛神昏、惊痫抽搐
+麝香 - 醒神回苏、开窍通闭，适用于癫痫昏迷
+丹参 - 活血化瘀，改善脑部血液循环
+
+【阿育吠陀草药】
+南非醉茄 - 镇静催眠、抗焦虑，调节神经系统功能（300-500mg）
+印度藏茴香 - 镇痛、抗惊厥（1-3g）
+缬草 - 镇静安神，改善睡眠质量（400-600mg）
+
+处方原则：
+1. 根据辨证结果选择4味主药
+2. 剂量要符合药典标准
+3. 有毒药物需特别标注注意事项
+4. 孕妇、儿童等特殊人群需特别提示禁忌
+5. 必须强调专业医师指导的重要性
+
+示例回复：
+根据患者描述的"突然昏倒、四肢抽搐，发作时口吐白沫，面色发青"，中医辨证为"肝风内动"型癫痫。
+
+【中医处方】
+天麻 9g - 平肝熄风、通络活血
+钩藤 12g - 清热平肝、降低脑部兴奋
+全蝎 3g - 熄风止痉、通络止痛
+石菖蒲 9g - 开窍醒神、健脾化痰
+
+【阿育吠陀辅助】
+南非醉茄 400mg - 调节神经系统功能
+
+【煎服方法】
+1. 将上述中药加水浸泡30分钟
+2. 煮沸后小火煎煮40分钟
+3. 每日1剂，分2次温服
+4. 建议连续服用3个月
+
+【注意事项】
+1. 全蝎有一定毒性，必须严格按剂量使用
+2. 孕妇禁用此方
+3. 服药期间忌食辛辣刺激食物
+4. 必须定期复诊，在医师指导下调整用药`
+                        },
+                        {
+                            role: "user",
+                            content: `患者症状：${symptoms}。请根据上述要求开具草药处方。`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                })
+            });
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+        
+        // 发送消息
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const message = userInput.value.trim();
+            
+            if (!message) return;
+            
+            // 显示用户消息
+            displayMessage(message, true);
+            userInput.value = '';
+            
+            // 显示加载指示器
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message';
+            loadingDiv.innerHTML = '<div class="loading"></div>';
+            document.getElementById('chat-messages').appendChild(loadingDiv);
+            
+            try {
+                // 如果是第一次描述症状，获取草药处方
+                if (document.getElementById('chat-messages').children.length <= 3) {
+                    const prescription = await getHerbalPrescription(message);
+                    
+                    // 移除加载指示器
+                    document.getElementById('chat-messages').removeChild(loadingDiv);
+                    
+                    // 显示处方
+                    displayMessage("根据您的症状，以下是我推荐的个性化草药治疗方案：", false);
+                    displayMessage(prescription, false);
+                } else {
+                    // 其他问题使用DeepSeek API回答
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: "deepseek-chat",
+                            messages: [
+                                {
+                                    role: "system",
+                                    content: "你是一位精通中医和阿育吠陀草药治疗癫痫的专家。请用专业但易懂的语言回答关于癫痫草药治疗的问题，始终强调咨询专业医师的重要性。"
+                                },
+                                {
+                                    role: "user",
+                                    content: message
+                                }
+                            ],
+                            temperature: 0.7,
+                            max_tokens: 800
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const botResponse = data.choices[0].message.content;
+                    
+                    // 移除加载指示器
+                    document.getElementById('chat-messages').removeChild(loadingDiv);
+                    
+                    // 显示AI回复
+                    displayMessage(botResponse, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('chat-messages').removeChild(loadingDiv);
+                displayMessage("抱歉，处理您的请求时出错了。请稍后再试。", false);
+            }
+        }
+        
+        // 处理键盘输入
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
